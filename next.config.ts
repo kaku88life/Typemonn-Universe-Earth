@@ -1,7 +1,21 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'static.atlasacademy.io',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'assets.atlasacademy.io',
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
+
