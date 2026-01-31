@@ -2,6 +2,7 @@
 
 import { useLayerStore } from '@/store/useLayerStore';
 import { useEffect, useState } from 'react';
+import { CheckCircle, AlertCircle, MapPin, Eye, Calendar, Grid3x3, ChevronDown, ChevronRight, X } from 'lucide-react';
 
 export default function DebugPanel() {
   const { locations, currentYear, viewLevel } = useLayerStore();
@@ -47,37 +48,63 @@ export default function DebugPanel() {
     return currentYear >= start && currentYear <= end;
   }).length;
 
-  const healthStatus = locations.length > 0 && filteredCount > 0 ? '[OK] HEALTHY' : '[!] WARNING';
-  const healthColor = locations.length > 0 && filteredCount > 0 ? 'text-green-400' : 'text-yellow-400';
+  const isHealthy = locations.length > 0 && filteredCount > 0;
+  const healthIcon = isHealthy ? (
+    <CheckCircle size={12} className="text-green-400" />
+  ) : (
+    <AlertCircle size={12} className="text-yellow-400" />
+  );
+  const healthText = isHealthy ? 'HEALTHY' : 'WARNING';
+  const healthColor = isHealthy ? 'text-green-400' : 'text-yellow-400';
 
   return (
     <div className="fixed bottom-4 right-4 z-[999] bg-black/85 border-2 border-cyan-500/70 p-3 rounded text-[10px] text-cyan-300 font-mono max-w-xs backdrop-blur-sm shadow-lg">
       {/* Header with close button */}
       <div className="flex justify-between items-center mb-2 border-b border-cyan-500/30 pb-2">
-        <div className={`font-bold ${healthColor}`}>{healthStatus}</div>
+        <div className={`font-bold ${healthColor} flex items-center gap-1`}>
+          {healthIcon}
+          <span>{healthText}</span>
+        </div>
         <button
           onClick={() => setDebugEnabled(false)}
-          className="text-cyan-500 hover:text-cyan-200 text-xs"
+          className="text-cyan-500 hover:text-cyan-200"
           title="Close (Ctrl+Shift+D to toggle)"
         >
-          X
+          <X size={12} />
         </button>
       </div>
 
       {/* Compact view */}
       <div className="space-y-1">
-        <div>[L] Locations: <span className="text-white font-bold">{locations.length}</span></div>
-        <div>[V] Visible: <span className="text-white font-bold">{filteredCount}</span></div>
-        <div>[Y] Year: <span className="text-white font-bold">{currentYear}</span></div>
-        <div>[Z] Level: <span className="text-white font-bold">{viewLevel}</span></div>
+        <div className="flex items-center gap-2">
+          <MapPin size={10} className="text-cyan-300" />
+          <span>Locations:</span>
+          <span className="text-white font-bold">{locations.length}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Eye size={10} className="text-cyan-300" />
+          <span>Visible:</span>
+          <span className="text-white font-bold">{filteredCount}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Calendar size={10} className="text-cyan-300" />
+          <span>Year:</span>
+          <span className="text-white font-bold">{currentYear}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Grid3x3 size={10} className="text-cyan-300" />
+          <span>Level:</span>
+          <span className="text-white font-bold">{viewLevel}</span>
+        </div>
       </div>
 
       {/* Expandable details */}
       <button
         onClick={() => setShowDetails(!showDetails)}
-        className="text-cyan-500 hover:text-cyan-300 mt-2 text-[9px] border-t border-cyan-500/20 pt-2 w-full text-left"
+        className="text-cyan-500 hover:text-cyan-300 mt-2 text-[9px] border-t border-cyan-500/20 pt-2 w-full text-left flex items-center gap-1"
       >
-        {showDetails ? 'v Details' : '> Details'}
+        {showDetails ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        <span>Details</span>
       </button>
 
       {showDetails && (

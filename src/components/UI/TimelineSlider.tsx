@@ -4,7 +4,7 @@ import { useLayerStore } from '@/store/useLayerStore';
 import { useLanguageStore } from '@/store/useLanguageStore';
 import HolographicPanel from './HolographicPanel';
 import { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Calendar, ChevronDown, ChevronRight } from 'lucide-react';
 
 // Enhanced Era Configuration with visual properties
 const ERA_CONFIG = [
@@ -136,13 +136,16 @@ export default function TimelineSlider() {
 
                 {/* Header with expand toggle */}
                 <div className="flex justify-between items-center border-b border-cyan-500/30 pb-1">
-                    <span className="text-[9px] font-mono text-cyan-400 uppercase">TEMPORAL NAVIGATOR</span>
+                    <div className="flex items-center gap-1">
+                        <Clock size={14} className="text-cyan-400" />
+                        <span className="text-[9px] font-mono text-cyan-400 uppercase">TEMPORAL NAVIGATOR</span>
+                    </div>
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
                         className="text-cyan-400 hover:text-cyan-200 transition-colors"
                         title={isExpanded ? 'Collapse' : 'Expand'}
                     >
-                        {isExpanded ? 'v' : '>'}
+                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </button>
                 </div>
 
@@ -151,8 +154,9 @@ export default function TimelineSlider() {
                     <div className="border-l-2 border-cyan-500/50 pl-2 space-y-1 text-[8px] text-cyan-400">
                         <div className="font-bold">{currentEra.translatedLabel}</div>
                         <div className="text-cyan-600">{currentEra.description}</div>
-                        <div className="text-cyan-700">
-                            Unit: {currentEra.unitLabel} | Step: {currentEra.step}
+                        <div className="text-cyan-700 flex items-center gap-1">
+                            <Calendar size={12} />
+                            <span>Unit: {currentEra.unitLabel} | Step: {currentEra.step}</span>
                         </div>
                     </div>
                 )}
@@ -209,7 +213,10 @@ export default function TimelineSlider() {
                 {/* Quick navigation (nearby major events) - Only in expanded mode */}
                 {isExpanded && (
                     <div className="border-t border-cyan-500/20 pt-1 mt-1">
-                        <div className="text-[8px] text-cyan-500 mb-1 uppercase">KEY EVENTS</div>
+                        <div className="text-[8px] text-cyan-500 mb-1 uppercase flex items-center gap-1">
+                            <Calendar size={12} />
+                            <span>KEY EVENTS</span>
+                        </div>
                         <div className="flex gap-1 flex-wrap">
                             {currentEra.id === 'MODERN' && [
                                 { label: 'FSN', year: 2004 },

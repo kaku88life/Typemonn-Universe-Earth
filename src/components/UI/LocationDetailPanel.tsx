@@ -44,22 +44,23 @@ export default function LocationDetailPanel() {
                     exit={{ x: 100, opacity: 0 }}
                     style={{
                         position: 'fixed',
-                        right: '24px',
-                        top: '96px',
-                        width: '360px', // Slightly wider for content
+                        left: '24px', // Moved to left
+                        top: '50%',   // Vertically centered
+                        transform: 'translateY(-50%)', // Centering correction
+                        width: '300px', // Reduced width
                         zIndex: 60,
                         pointerEvents: 'auto',
-                        maxHeight: 'calc(100vh - 150px)',
+                        maxHeight: '70vh', // Limit height
                         overflowY: 'auto'
                     }}
                     className="custom-scrollbar"
                 >
-                    <HolographicPanel className="relative flex flex-col gap-4">
+                    <HolographicPanel className="relative flex flex-col gap-3">
                         <button
                             onClick={() => setSelectedLocation(null)}
-                            className="absolute top-3 right-3 text-cyan-500 hover:text-white transition-colors"
+                            className="absolute top-2 right-2 p-1 text-cyan-500/50 hover:text-white transition-colors hover:bg-cyan-900/50 rounded-full"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-3 h-3" />
                         </button>
 
                         <div>
@@ -124,19 +125,54 @@ export default function LocationDetailPanel() {
                             </div>
                         )}
 
-                        {/* FGO SERVANTS */}
-                        <div>
-                            <h3 className="text-xs font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                        {/* CHARACTERS (A-Z) */}
+                        <div className="flex-1 min-h-0 flex flex-col">
+                            <h3 className="text-xs font-bold text-cyan-400 mb-2 flex items-center gap-2 px-1">
                                 <Swords className="w-3 h-3" />
-                                FGO SERVANTS
+                                CHARACTERS (A-Z)
                             </h3>
-                            {loadingServants ? (
-                                <ServantGridSkeleton count={4} />
-                            ) : servants.length > 0 ? (
-                                <ServantGrid servants={servants} maxDisplay={8} />
-                            ) : (
-                                <p className="text-xs text-cyan-600/50 italic">No servant data available</p>
-                            )}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-[200px]">
+                                {loadingServants ? (
+                                    <ServantGridSkeleton count={4} />
+                                ) : servants.length > 0 ? (
+                                    <div className="flex flex-col gap-2">
+                                        {servants
+                                            .sort((a, b) => a.name.localeCompare(b.name))
+                                            .map((servant) => (
+                                                <div
+                                                    key={servant.id}
+                                                    className="flex items-center gap-2 bg-cyan-950/30 p-1.5 rounded-lg border border-cyan-500/10 hover:bg-cyan-900/40 hover:border-cyan-500/30 transition-all group cursor-pointer"
+                                                >
+                                                    {/* Avatar */}
+                                                    <div className="relative w-9 h-9 rounded overflow-hidden border border-cyan-500/20 shrink-0">
+                                                        <img
+                                                            src={servant.face}
+                                                            alt={servant.name}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+
+                                                    {/* Info */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="text-sm font-bold text-cyan-100 truncate group-hover:text-white transition-colors">
+                                                                {servant.name}
+                                                            </p>
+                                                            <span className="text-[10px] text-yellow-500 font-mono">
+                                                                {'★'.repeat(servant.rarity)}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-cyan-400/70 capitalize">
+                                                            {servant.className}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-cyan-600/50 italic px-1">No character data available</p>
+                                )}
+                            </div>
                         </div>
 
                         {/* WORLD LINES */}
