@@ -135,13 +135,13 @@ export default function DraggablePanel(props: DraggablePanelProps) {
 
     return (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-            <DraggableContent ref={panelRef} coordinates={coordinates} {...props} />
+            <DraggableContent panelRef={panelRef} coordinates={coordinates} {...props} />
         </DndContext>
     );
 }
 
 // Inner component to consume the draggable hook
-function DraggableContent({ coordinates, id, title, children, className, panelRef }: DraggablePanelProps & { coordinates: { x: number, y: number }, panelRef?: React.RefObject<HTMLDivElement> }) {
+function DraggableContent({ coordinates, id, title, children, className, panelRef }: DraggablePanelProps & { coordinates: { x: number, y: number }, panelRef?: React.RefObject<HTMLDivElement | null> }) {
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: id,
     });

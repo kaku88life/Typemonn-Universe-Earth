@@ -213,10 +213,6 @@ export default function GlobeWrapper() {
                 backgroundColor="#000000"
                 atmosphereColor={showReverseSide ? "#ffd700" : "#00f0ff"}
 
-                // === AUTO ROTATION ===
-                autoRotate={true}
-                autoRotateSpeed={0.5}
-
                 // === VECTOR CONTINENTS ===
                 polygonsData={countries.features}
                 polygonStrokeColor={() => showReverseSide ? '#aa8800' : '#446666'}
