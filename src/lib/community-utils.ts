@@ -1,0 +1,381 @@
+/**
+ * Community System Utilities
+ * 社群系統相關的計算、驗證和工具函數
+ */
+
+import { UserProfile, UserTier, Proposal, Vote, TokenTransaction } from '@/types/community';
+import { TIER_REQUIREMENTS, REPUTATION_GAINS, REPUTATION_PENALTIES, TOKEN_REWARDS, LEADERBOARD_CONFIG } from '@/config/community.config';
+
+// ==================== REPUTATION CALCULATION ====================
+
+/**
+ * Calculate user tier based on reputation and statistics
+ */
+export function calculateUserTier(user: UserProfile): UserTier {
+  const { reputation, stats } = user;
+
+  // Check if meets Keeper requirements
+  if (reputation >= 851 && stats.approvedEdits >= 100 && stats.approvalRate >= 80) {
+    return 'Keeper';
+  }
+
+  // Check if meets Archivist requirements
+  if (reputation >= 601 && stats.approvedEdits >= 50 && stats.approvalRate >= 75) {
+    return 'Archivist';
+  }
+
+  // Check if meets Expert requirements
+  if (reputation >= 301 && stats.approvedEdits >= 20 && stats.approvalRate >= 80) {
+    return 'Expert';
+  }
+
+  // Check if meets Editor requirements
+  if (reputation >= 101 && stats.approvedEdits >= 5 && stats.approvalRate >= 50) {
+    return 'Editor';
+  }
+
+  // Default to Apprentice
+  return 'Apprentice';
+}
+
+/**
+ * Calculate voting weight based on user tier and reputation
+ */
+export function calculateVotingWeight(user: UserProfile): number {
+  const tier = user.tier;
+  const weights = {
+    Apprentice: 1,
+    Editor: 1,
+    Expert: 2,
+    Archivist: 3,
+    Keeper: 5,
+  };
+
+  return weights[tier] || 1;
+}
+
+/**
+ * Check if user can perform an action based on tier
+ */
+export function canUserPerformAction(user: UserProfile, action: string): boolean {
+  const requirements = TIER_REQUIREMENTS[user.tier];
+  return requirements.features.includes(action);
+}
+
+/**
+ * Calculate approval rate
+ */
+export function calculateApprovalRate(approvedEdits: number, totalEdits: number): number {
+  if (totalEdits === 0) return 0;
+  return Math.round((approvedEdits / totalEdits) * 100);
+}
+
+// ==================== VOTING LOGIC ====================
+
+/**
+ * Determine if a proposal has reached voting consensus
+ */
+export function hasProposalPassed(
+  approveVotes: number,
+  rejectVotes: number,
+  totalVoters: number,
+  requirements: {
+    minVoters: number;
+    approvalThreshold: number;
+  }
+): boolean {
+  // Check minimum voters
+  if (totalVoters < requirements.minVoters) {
+    return false;
+  }
+
+  // Calculate approval percentage
+  const totalVotes = approveVotes + rejectVotes;
+  if (totalVotes === 0) return false;
+
+  const approvalPercentage = approveVotes / totalVotes;
+  return approvalPercentage >= requirements.approvalThreshold;
+}
+
+/**
+ * Calculate weighted voting result (reputation-based)
+ */
+export function calculateWeightedVotingResult(
+  votes: Vote[],
+  userTiers: Map<string, UserTier>
+): {
+  weightedApprove: number;
+  weightedReject: number;
+  totalWeight: number;
+  approvalPercentage: number;
+} {
+  let weightedApprove = 0;
+  let weightedReject = 0;
+  let totalWeight = 0;
+
+  const tierWeights = {
+    Apprentice: 1,
+    Editor: 1,
+    Expert: 2,
+    Archivist: 3,
+    Keeper: 5,
+  };
+
+  votes.forEach(vote => {
+    const tier = userTiers.get(vote.voterId) || 'Apprentice';
+    const weight = tierWeights[tier];
+    totalWeight += weight;
+
+    if (vote.decision === 'approve') {
+      weightedApprove += weight;
+    } else if (vote.decision === 'reject') {
+      weightedReject += weight;
+    }
+    // abstain votes don't count toward either side
+  });
+
+  const approvalPercentage = totalWeight > 0 ? weightedApprove / (weightedApprove + weightedReject) : 0;
+
+  return {
+    weightedApprove,
+    weightedReject,
+    totalWeight,
+    approvalPercentage,
+  };
+}
+
+// ==================== TOKEN CALCULATION ====================
+
+/**
+ * Calculate token reward for an action
+ */
+export function calculateTokenReward(action: string): number {
+  const rewards = TOKEN_REWARDS as Record<string, number>;
+  return rewards[action] || 0;
+}
+
+/**
+ * Apply token transaction
+ */
+export function applyTokenTransaction(
+  currentBalance: number,
+  transaction: TokenTransaction
+): number {
+  if (transaction.type === 'earn' || transaction.type === 'bonus') {
+    return currentBalance + transaction.amount;
+  } else if (transaction.type === 'spend' || transaction.type === 'penalty') {
+    return Math.max(0, currentBalance - transaction.amount);
+  }
+  return currentBalance;
+}
+
+/**
+ * Check if user has enough tokens for action
+ */
+export function canAffordAction(userBalance: number, cost: number): boolean {
+  return userBalance >= cost;
+}
+
+// ==================== PROPOSAL VALIDATION ====================
+
+/**
+ * Validate proposal changes
+ */
+export function validateProposalChanges(changes: any[]): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+
+  if (!Array.isArray(changes) || changes.length === 0) {
+    errors.push('Proposal must contain at least one change');
+  }
+
+  changes.forEach((change, index) => {
+    if (!change.field) {
+      errors.push(`Change ${index + 1}: Missing field name`);
+    }
+    if (change.oldValue === undefined && change.newValue === undefined) {
+      errors.push(`Change ${index + 1}: Must have oldValue or newValue`);
+    }
+  });
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Check for duplicate or conflicting proposals
+ */
+export function findConflictingProposals(
+  newProposal: Proposal,
+  existingProposals: Proposal[]
+): Proposal[] {
+  return existingProposals.filter(
+    proposal =>
+      proposal.contentId === newProposal.contentId &&
+      proposal.contentType === newProposal.contentType &&
+      proposal.status === 'pending'
+  );
+}
+
+// ==================== LEADERBOARD CALCULATION ====================
+
+/**
+ * Calculate leaderboard score for a user
+ */
+export function calculateLeaderboardScore(user: UserProfile): number {
+  const scoring = LEADERBOARD_CONFIG.scoreCalculation;
+
+  return (
+    user.reputation * scoring.reputation +
+    user.stats.approvedEdits * scoring.approvedEdits +
+    user.stats.helpfulVotes * scoring.helpfulVotes +
+    user.badges.length * scoring.badges +
+    user.tokens.balance * scoring.tokens
+  );
+}
+
+/**
+ * Apply decay to inactive users
+ */
+export function applyInactivityDecay(
+  score: number,
+  lastActiveDays: number
+): number {
+  const { decayRate, decayPeriodDays } = LEADERBOARD_CONFIG;
+  const periodsPassed = Math.floor(lastActiveDays / decayPeriodDays);
+
+  const decayFactor = Math.pow(1 - decayRate, periodsPassed);
+  return score * decayFactor;
+}
+
+/**
+ * Determine leaderboard tier based on rank percentage
+ */
+export function getLeaderboardTier(
+  userRank: number,
+  totalUsers: number
+): string {
+  const percentile = (userRank / totalUsers) * 100;
+
+  for (const tier of LEADERBOARD_CONFIG.tiers) {
+    if (percentile <= tier.topPercent) {
+      return tier.name;
+    }
+  }
+
+  return 'Standard';
+}
+
+// ==================== BADGE & ACHIEVEMENT CHECKS ====================
+
+/**
+ * Check if user qualifies for a badge
+ */
+export function checkBadgeQualification(
+  user: UserProfile,
+  badgeId: string
+): boolean {
+  switch (badgeId) {
+    case 'newcomer':
+      return user.stats.approvedEdits >= 1;
+
+    case 'accurate-editor':
+      return user.stats.helpfulVotes >= 5;
+
+    case 'geography-master':
+      return user.stats.approvedEdits >= 10; // Would need content-type filtering
+
+    case 'character-collector':
+      return user.stats.approvedEdits >= 20; // Would need content-type filtering
+
+    case 'governance-participant':
+      return user.stats.totalVotes >= 50;
+
+    case 'legendary-contributor':
+      return user.tier === 'Archivist' || user.tier === 'Keeper';
+
+    case 'community-leader':
+      return user.tier === 'Expert' || user.tier === 'Archivist' || user.tier === 'Keeper';
+
+    default:
+      return false;
+  }
+}
+
+// ==================== TIME & DATE UTILITIES ====================
+
+/**
+ * Check if voting period has ended
+ */
+export function hasVotingEnded(endsAt: Date): boolean {
+  return new Date() > endsAt;
+}
+
+/**
+ * Get time remaining for voting (in hours)
+ */
+export function getVotingTimeRemaining(endsAt: Date): number {
+  const now = new Date();
+  const diff = endsAt.getTime() - now.getTime();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60)));
+}
+
+/**
+ * Format time remaining for display
+ */
+export function formatTimeRemaining(hours: number): string {
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    return `${days} day${days > 1 ? 's' : ''} remaining`;
+  }
+  return `${hours} hour${hours > 1 ? 's' : ''} remaining`;
+}
+
+// ==================== CONTENT VALIDATION ====================
+
+/**
+ * Validate location content for submission
+ */
+export function validateLocationContent(location: any): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+
+  if (!location.name || location.name.trim().length === 0) {
+    errors.push('Location name is required');
+  }
+
+  if (!location.type) {
+    errors.push('Location type is required');
+  }
+
+  if (location.coordinates) {
+    if (!location.coordinates.lat || !location.coordinates.lng) {
+      errors.push('Invalid coordinates');
+    }
+  }
+
+  if (location.year_start && location.year_end && location.year_start > location.year_end) {
+    errors.push('Start year cannot be after end year');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Sanitize user input
+ */
+export function sanitizeProposalSummary(text: string): string {
+  return text
+    .trim()
+    .substring(0, 1000)                    // Max 1000 chars
+    .replace(/<[^>]*>/g, '');              // Remove HTML tags
+}
