@@ -106,21 +106,66 @@ export async function getServantsForLocation(locationName: string): Promise<Basi
     // Hardcoded mappings for Type-Moon locations
     // Keys are substrings that appear in location names
     const locationServantMap: Record<string, number[]> = {
-        'fuyuki': [1, 2, 5, 6, 7, 9, 10, 11], // Mash, Artoria, Cu, EMIYA, Gilgamesh, Medusa
-        'clock tower': [36, 45, 67, 127], // Mordred, Jekyll, Waver, etc.
-        'london': [27, 36, 45, 67], // Jekyll, Mordred, etc.
+        // Japan
+        'fuyuki': [1, 2, 5, 6, 7, 9, 10, 11, 14], // Mash, Artoria, Cu, EMIYA, Gilgamesh, Medusa, Herakles
+        'misaki': [167, 236], // Shiki variants
+        'mifune': [56, 186], // Ryougi Shiki variants
+        'tohno': [167, 236], // Shiki Tohno related
+        'einzbern': [2, 3, 15, 16], // Artoria, Irisviel
+        'ryuudou': [7, 40, 115], // Medea, Assassin
+        'homurahara': [5, 6, 7, 11], // FSN main cast
+        'garan': [56], // Ryougi Shiki
+
+        // Europe
+        'clock tower': [36, 45, 67, 127, 145], // Lord El-Melloi cast
+        'london': [27, 36, 45, 67, 117], // Jekyll, Mordred, Jack
+        'albion': [127, 36], // Waver, etc
+        'camelot': [2, 4, 17, 25, 58, 121, 123, 126], // Round Table Knights
+        'avalon': [2, 68], // Artoria, Merlin
+        'orleans': [13, 22, 26, 33, 59], // Jeanne, Gilles, Marie
+        'rome': [6, 23, 41, 43, 50, 51], // Nero, Caesar, Romulus
+
+        // Middle East
+        'uruk': [52, 138, 80, 76, 139], // Gilgamesh Caster, Enkidu, Ishtar, Ereshkigal
+        'babylon': [52, 60, 139, 140], // Gilgamesh, Ishtar
+        'jerusalem': [24, 38, 100, 131], // Richard, Saladin (approximations)
+
+        // Americas
+        'e pluribus': [57, 66, 70, 78, 79], // American heroes
+        'salem': [74, 135, 163, 195], // Salem characters
+        'agartha': [166, 167, 168, 169], // Scheherazade, Wu Zetian
+        'okeanos': [19, 29, 34, 44, 71], // Drake, Blackbeard, pirates
+
+        // Lostbelts
+        'permafrost': [142, 174, 175], // Ivan, Anastasia
+        'ice flame': [160, 176], // Skadi, Sigurd, Brynhild
+        'synchronized': [133, 177, 178], // Qin Shi Huang
+        'genesis': [83, 180, 181], // Arjuna Alter, Karna
+        'ocean.*titan': [88, 182, 183, 184], // Olympus cast
+        'fairy': [231, 232, 233, 234], // Lostbelt 6 cast
+        'golden.*tree': [300, 301], // Lostbelt 7 cast
+
+        // Mages Association
+        'atlas institute': [187, 200], // Sion related
+        'wandering sea': [261, 153], // Da Vinci, Chaldea staff
+
+        // Special
         'chaldea': [1, 261, 153, 108], // Mash, Da Vinci, Romani
-        'uruk': [52, 138, 80, 76], // Gilgamesh Caster, Enkidu, Ana
-        'camelot': [4, 17, 25, 58, 123], // Artoria variants, Bedivere, Lancelot
-        'misaki': [53, 164], // Shiki Tohno-related
-        'mifune': [56, 186], // Ryougi Shiki
-        'atlas institute': [187, 200], // Atlas characters
-        'antarctic': [1, 261], // Mash, Da Vinci
+        'moon cell': [18, 19, 20, 21, 49], // Nero, Tamamo, Extra cast
+        'se.ra.ph': [18, 19, 20, 21, 163], // CCC cast
+        'root': [56], // Ryougi Shiki - connected to Root
+        'reverse side': [2, 68, 191], // Phantasmal species
+
+        // FGO Events/Other
+        'shinjuku': [165, 166], // Shinjuku cast
+        'shimousa': [56, 167, 188], // Musashi, swordsmen
+        'egypt': [62, 63, 64, 65], // Ozymandias, Nitocris, Cleopatra
+        'troy': [8, 85, 86], // Hector, Paris
     };
 
     // Find matching servants by checking if any key is contained in the location name
     for (const [key, servantIds] of Object.entries(locationServantMap)) {
-        if (normalizedName.includes(key)) {
+        if (normalizedName.includes(key) || new RegExp(key).test(normalizedName)) {
             return fetchServantsById(servantIds);
         }
     }
