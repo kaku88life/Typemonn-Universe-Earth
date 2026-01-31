@@ -72,8 +72,13 @@ function parseMarkdown(content) {
     }
     // 提取日期
     if (line.includes('📅 日期：')) {
-      const dateMatch = line.match(/(\d{4}年\d{1,2}月\d{1,2}日)/);
-      if (dateMatch) data.date = dateMatch[1];
+      const dateMatch = line.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+      if (dateMatch) {
+        const year = dateMatch[1];
+        const month = String(dateMatch[2]).padStart(2, '0');
+        const day = String(dateMatch[3]).padStart(2, '0');
+        data.date = `${year}-${month}-${day}`; // 轉換為 ISO 8601 格式
+      }
     }
     // 提取部分
     if (line.startsWith('## ')) {
@@ -125,7 +130,7 @@ function textToNotionBlocks(text) {
         type: 'code',
         code: {
           rich_text: [{ type: 'text', text: { content: line } }],
-          language: 'text'
+          language: 'plain text'  // 使用 Notion 支持的語言名稱
         }
       });
     } else if (line.trim()) {
@@ -150,55 +155,54 @@ async function syncToNotion(data) {
   try {
     console.log('🔄 正在同步到 Notion...');
 
-    // 查詢是否存在今日的日誌頁面
-    const response = await notion.databases.query({
-      database_id: NOTION_DATABASE_ID,
-      filter: {
-        property: 'Date',
-        date: {
-          equals: data.date
-        }
-      }
-    });
+    // 建立新頁面（使用最小化屬性）
+    console.log('✨ 建立新頁面...');
 
     let pageId;
+    try {
+      // 首先嘗試獲取 Database schema 以瞭解可用屬性
+      const dbResponse = await notion.databases.retrieve({
+        database_id: NOTION_DATABASE_ID
+      });
 
-    if (response.results.length > 0) {
-      // 更新現有頁面
-      pageId = response.results[0].id;
-      console.log(`📝 更新現有頁面: ${pageId}`);
+      // 只使用 Database 中實際存在的屬性
+      const properties = {};
+      const availableProps = Object.keys(dbResponse.properties);
 
-      // 清除原有內容
-      const blocks = await notion.blocks.children.list({ block_id: pageId });
-      for (const block of blocks.results) {
-        await notion.blocks.delete({ block_id: block.id });
+      // 檢查是否有名稱類屬性（通常是 Name 或 Title）
+      const titleProp = availableProps.find(p =>
+        p.toLowerCase() === 'name' ||
+        p.toLowerCase() === 'title' ||
+        dbResponse.properties[p].type === 'title'
+      );
+
+      if (titleProp) {
+        properties[titleProp] = {
+          title: [
+            {
+              type: 'text',
+              text: { content: `${data.title} (${data.date})` }
+            }
+          ]
+        };
       }
-    } else {
-      // 建立新頁面
-      console.log('✨ 建立新頁面...');
 
       const createResponse = await notion.pages.create({
         parent: {
           database_id: NOTION_DATABASE_ID
         },
-        properties: {
-          Title: {
-            title: [
-              {
-                type: 'text',
-                text: { content: `${data.title} - ${data.date}` }
-              }
-            ]
-          },
-          Date: {
-            date: { start: data.date }
-          },
-          Status: {
-            select: { name: data.status }
-          }
-        }
+        properties: titleProp ? properties : {}
       });
 
+      pageId = createResponse.id;
+    } catch (error) {
+      // 如果上面的方式失敗，使用最基本的建立方式
+      const createResponse = await notion.pages.create({
+        parent: {
+          database_id: NOTION_DATABASE_ID
+        },
+        properties: {}
+      });
       pageId = createResponse.id;
     }
 

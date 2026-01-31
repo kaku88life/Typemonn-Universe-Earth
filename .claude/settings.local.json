@@ -12,7 +12,8 @@
       "Bash(curl:*)",
       "mcp__mcp-registry__search_mcp_registry",
       "Bash(npm install:*)",
-      "Bash(npm run notion:verify:*)"
+      "Bash(npm run notion:verify:*)",
+      "Bash(npm run notion:sync:*)"
     ]
   }
 }

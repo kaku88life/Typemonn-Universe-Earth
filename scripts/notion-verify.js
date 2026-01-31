@@ -25,12 +25,12 @@ checks.push({
 
 // 檢查 2: NOTION_API_KEY
 const apiKey = process.env.NOTION_API_KEY;
-const apiKeyValid = apiKey && apiKey !== 'your_api_key_here' && apiKey.startsWith('secret_');
+const apiKeyValid = apiKey && apiKey !== 'your_api_key_here' && (apiKey.startsWith('secret_') || apiKey.startsWith('ntn_'));
 checks.push({
   name: 'NOTION_API_KEY 已配置',
   passed: apiKeyValid,
   hint: apiKey ? `✅ (${apiKey.slice(0, 10)}...)` : '❌ 缺失或佔位符',
-  detail: '應以 secret_ 開頭的 Notion Integration Token'
+  detail: '應是 Notion Integration Token（以 secret_ 或 ntn_ 開頭）'
 });
 
 // 檢查 3: NOTION_DATABASE_ID
