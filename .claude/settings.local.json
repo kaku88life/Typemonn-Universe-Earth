@@ -9,7 +9,10 @@
       "Bash(timeout 15 npm:*)",
       "Bash(taskkill:*)",
       "Bash(npm run dev:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "Bash(npm install:*)",
+      "Bash(npm run notion:verify:*)"
     ]
   }
 }
