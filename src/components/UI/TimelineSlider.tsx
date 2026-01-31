@@ -136,23 +136,23 @@ export default function TimelineSlider() {
 
                 {/* Header with expand toggle */}
                 <div className="flex justify-between items-center border-b border-cyan-500/30 pb-1">
-                    <span className="text-[9px] font-mono text-cyan-400 uppercase">⏱️ Temporal Navigator</span>
+                    <span className="text-[9px] font-mono text-cyan-400 uppercase">TEMPORAL NAVIGATOR</span>
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
                         className="text-cyan-400 hover:text-cyan-200 transition-colors"
                         title={isExpanded ? 'Collapse' : 'Expand'}
                     >
-                        {isExpanded ? '▼' : '▶'}
+                        {isExpanded ? 'v' : '>'}
                     </button>
                 </div>
 
                 {/* Expanded Details Section */}
                 {isExpanded && (
                     <div className="border-l-2 border-cyan-500/50 pl-2 space-y-1 text-[8px] text-cyan-400">
-                        <div className="font-bold">{currentEra.translatedLabel} (太古時代)</div>
+                        <div className="font-bold">{currentEra.translatedLabel}</div>
                         <div className="text-cyan-600">{currentEra.description}</div>
                         <div className="text-cyan-700">
-                            📊 單位: {currentEra.unitLabel} | 步進: {currentEra.step}
+                            Unit: {currentEra.unitLabel} | Step: {currentEra.step}
                         </div>
                     </div>
                 )}
@@ -190,9 +190,8 @@ export default function TimelineSlider() {
                         step={currentEra.step}
                         value={currentYear}
                         onChange={(e) => setCurrentYear(Number(e.target.value))}
-                        className="w-full h-1 bg-transparent rounded-lg appearance-none cursor-pointer opacity-0"
+                        className="w-full h-1 rounded-lg appearance-none cursor-pointer accent-cyan-400"
                         style={{
-                            background: 'transparent',
                             WebkitAppearance: 'slider-horizontal',
                         }}
                     />
@@ -210,7 +209,7 @@ export default function TimelineSlider() {
                 {/* Quick navigation (nearby major events) - Only in expanded mode */}
                 {isExpanded && (
                     <div className="border-t border-cyan-500/20 pt-1 mt-1">
-                        <div className="text-[8px] text-cyan-500 mb-1 uppercase">⭐ Key Events</div>
+                        <div className="text-[8px] text-cyan-500 mb-1 uppercase">KEY EVENTS</div>
                         <div className="flex gap-1 flex-wrap">
                             {currentEra.id === 'MODERN' && [
                                 { label: 'FSN', year: 2004 },

@@ -47,7 +47,7 @@ export default function DebugPanel() {
     return currentYear >= start && currentYear <= end;
   }).length;
 
-  const healthStatus = locations.length > 0 && filteredCount > 0 ? '✅ HEALTHY' : '⚠️ WARNING';
+  const healthStatus = locations.length > 0 && filteredCount > 0 ? '[OK] HEALTHY' : '[!] WARNING';
   const healthColor = locations.length > 0 && filteredCount > 0 ? 'text-green-400' : 'text-yellow-400';
 
   return (
@@ -60,16 +60,16 @@ export default function DebugPanel() {
           className="text-cyan-500 hover:text-cyan-200 text-xs"
           title="Close (Ctrl+Shift+D to toggle)"
         >
-          ✕
+          X
         </button>
       </div>
 
       {/* Compact view */}
       <div className="space-y-1">
-        <div>📊 Locations: <span className="text-white font-bold">{locations.length}</span></div>
-        <div>✅ Visible: <span className="text-white font-bold">{filteredCount}</span></div>
-        <div>📅 Year: <span className="text-white font-bold">{currentYear}</span></div>
-        <div>🎯 Level: <span className="text-white font-bold">{viewLevel}</span></div>
+        <div>[L] Locations: <span className="text-white font-bold">{locations.length}</span></div>
+        <div>[V] Visible: <span className="text-white font-bold">{filteredCount}</span></div>
+        <div>[Y] Year: <span className="text-white font-bold">{currentYear}</span></div>
+        <div>[Z] Level: <span className="text-white font-bold">{viewLevel}</span></div>
       </div>
 
       {/* Expandable details */}
@@ -77,7 +77,7 @@ export default function DebugPanel() {
         onClick={() => setShowDetails(!showDetails)}
         className="text-cyan-500 hover:text-cyan-300 mt-2 text-[9px] border-t border-cyan-500/20 pt-2 w-full text-left"
       >
-        {showDetails ? '▼ Details' : '▶ Details'}
+        {showDetails ? 'v Details' : '> Details'}
       </button>
 
       {showDetails && (
@@ -91,12 +91,12 @@ export default function DebugPanel() {
       {/* Warning messages */}
       {locations.length === 0 && (
         <div className="text-red-400 mt-2 border-t border-red-400/50 pt-2 text-[9px]">
-          ⚠️ No locations loaded
+          [!] No locations loaded
         </div>
       )}
       {filteredCount === 0 && locations.length > 0 && (
         <div className="text-yellow-400 mt-2 border-t border-yellow-400/50 pt-2 text-[9px]">
-          ⚠️ All locations filtered out
+          [!] All locations filtered out
         </div>
       )}
 
