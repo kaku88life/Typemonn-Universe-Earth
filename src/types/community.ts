@@ -26,11 +26,12 @@ export interface UserProfile {
     helpfulVotes: number;       // received
   };
 
-  // GameFi
-  tokens: {
-    balance: number;
-    earned: number;
-    spent: number;
+  // GameFi - QP (Quantum Piece) Token Economy
+  qp: {
+    balance: number;                    // Current QP balance
+    earned: number;                     // Total QP earned lifetime
+    spent: number;                      // Total QP spent lifetime
+    lastDailyLogin?: Date;              // For daily login reward tracking
   };
 
   // Achievements
@@ -189,7 +190,7 @@ export interface Achievement {
 
 export type TransactionType = 'earn' | 'spend' | 'bonus' | 'penalty';
 
-export interface TokenTransaction {
+export interface QPTransaction {
   id: string;
   userId: string;
   type: TransactionType;
@@ -198,6 +199,9 @@ export interface TokenTransaction {
   relatedProposalId?: string;
   createdAt: Date;
 }
+
+// Alias for backward compatibility
+export type TokenTransaction = QPTransaction;
 
 export interface RewardShopItem {
   id: string;

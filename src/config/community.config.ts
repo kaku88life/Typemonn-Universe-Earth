@@ -122,45 +122,53 @@ export const REPUTATION_PENALTIES = {
   banEvasion: -100,
 } as const;
 
-// ==================== TOKEN ECONOMY ====================
+// ==================== TOKEN ECONOMY (QP - Quantum Piece) ====================
+
+/**
+ * QP (Quantum Piece) - Community Contribution Token
+ *
+ * QP 是型月全息投影社群貢獻者的虛擬激勵代幣。
+ * 用戶通過編輯內容、投票治理、幫助社群等行為獲得 QP。
+ * QP 無法交易、出售或轉換成真實貨幣，純粹作為社群參與的遊戲化獎勵。
+ */
 
 export const TOKEN_CONFIG = {
   // Initial token allocation
-  initialBalanceForNewUsers: 20,
+  initialBalanceForNewUsers: 20,        // 新用戶啟動資金
 
-  // Token rewards
+  // Token rewards (QP earnings)
   rewards: {
-    firstEdit: 10,                      // One-time bonus
-    editApproved: 5,
-    largeEditApproved: 25,              // 5+ changes
-    editMarkedHelpful: 3,
+    firstEdit: 10,                      // 首次編輯獎勵（一次性）
+    editApproved: 5,                    // 編輯通過獎勵
+    largeEditApproved: 25,              // 大型編輯獎勵（5+ 變更）
+    editMarkedHelpful: 3,               // 被標記為有幫助
 
-    voteParticipation: 0.5,
-    correctVote: 2,                     // Vote matches final result
+    voteParticipation: 0.5,             // 參與投票
+    correctVote: 2,                     // 投票與最終結果一致
 
-    editReferenced: 5,
-    dailyLogin: 1,
-    dailyMaxLogin: 5,                   // Max per day
+    editReferenced: 5,                  // 編輯被其他人引用
+    dailyLogin: 1,                      // 每日登錄獎勵
+    dailyMaxLogin: 5,                   // 每日最高登錄獎勵
   },
 
-  // Token costs
+  // Token costs (QP 花費)
   costs: {
-    expediteProposal: 10,               // Speed up voting from 7 to 3 days
-    addPromotionBadge: 50,              // "Official pick" badge
-    viewEditNotes: 5,                   // View editor's reasoning
-    lockProposal: 20,                   // Prevent further edits
-    disputeInitiation: 0,               // Free to start dispute
+    expediteProposal: 10,               // 加速投票：7天 → 3天
+    addPromotionBadge: 50,              // 添加「官方推薦」標籤
+    viewEditNotes: 5,                   // 查看編輯者的筆記/理由
+    lockProposal: 20,                   // 鎖定提案，防止進一步編輯
+    disputeInitiation: 0,               // 發起爭議投票（免費）
   },
 
   // Token limits
   daily: {
-    maxTokenEarn: 50,
-    maxVotingReward: 20,
+    maxTokenEarn: 50,                   // 每日最高獲得 50 QP
+    maxVotingReward: 20,                // 投票獎勵每日上限
   },
 
   // Supply
-  totalSupply: 1000000,                 // 1M total tokens
-  burnRate: 0.01,                       // 1% of spent tokens are burned
+  totalSupply: 1000000,                 // 1M 總供應量
+  burnRate: 0.01,                       // 花費的 QP 中 1% 被銷毀
 } as const;
 
 // ==================== BADGES & ACHIEVEMENTS ====================
