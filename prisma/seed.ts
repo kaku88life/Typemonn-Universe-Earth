@@ -400,15 +400,40 @@ const LOCATIONS = [
 ]
 
 
-async function main() {
-    console.log(`Start seeding ...`)
-    for (const loc of LOCATIONS) {
-        const location = await prisma.location.create({
-            data: loc,
-        })
-        console.log(`Created location with id: ${location.id}`)
+async function seedWithRetry(loc: typeof LOCATIONS[0], retries = 3): Promise<void> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const location = await prisma.location.create({
+                data: loc,
+            })
+            console.log(`✓ Created: ${loc.name} (${location.id})`)
+            return
+        } catch (error) {
+            if (attempt === retries) {
+                console.error(`✗ Failed: ${loc.name} after ${retries} attempts`)
+                throw error
+            }
+            console.log(`⟳ Retry ${attempt}/${retries}: ${loc.name}`)
+            await new Promise(r => setTimeout(r, 1000 * attempt)) // exponential backoff
+        }
     }
-    console.log(`Seeding finished.`)
+}
+
+async function main() {
+    console.log(`Start seeding ${LOCATIONS.length} locations...`)
+    let success = 0
+    let failed = 0
+
+    for (const loc of LOCATIONS) {
+        try {
+            await seedWithRetry(loc)
+            success++
+        } catch {
+            failed++
+        }
+    }
+
+    console.log(`\nSeeding finished: ${success} success, ${failed} failed`)
 }
 
 main()
@@ -420,3 +445,4 @@ main()
         await prisma.$disconnect()
         process.exit(1)
     })
+
