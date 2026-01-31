@@ -21,24 +21,45 @@ const CONTINENT_COLORS: Record<string, string> = {
     'Antarctica': 'rgba(255, 255, 255, 0.2)',
 };
 
+const TYPE_COLORS: Record<string, string> = {
+    'City': '#00f0ff', // Cyan
+    'Landmark': '#00ff88', // Green
+    'Organization': '#aa00ff', // Purple
+    'MagicAssociation': '#aa00ff', // Purple
+    'ReverseSide': '#ffd700', // Gold
+    'Lostbelt': '#ffffff', // White
+    'Singularity': '#ff0055', // Red
+    'Event': '#ff0055', // Red
+    'default': '#00f0ff'
+};
+
 // Custom Sphere Object
 const getSphereMarker = (d: any) => {
-    const geometry = new THREE.SphereGeometry(0.6, 32, 32);
+    const color = TYPE_COLORS[d.type] || TYPE_COLORS.default;
+
+    // Different geometry based on type? For now just size/color
+    const size = d.type === 'Lostbelt' || d.type === 'ReverseSide' ? 0.8 : 0.6;
+
+    const geometry = new THREE.SphereGeometry(size, 32, 32);
     const material = new THREE.MeshPhongMaterial({
-        color: d.color,
-        emissive: d.color,
-        emissiveIntensity: 1.0,
+        color: color,
+        emissive: color,
+        emissiveIntensity: 0.8,
         shininess: 100,
         transparent: false,
     });
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.userData = { ...d, type: 'marker' };
+    mesh.userData = { ...d, type: 'marker', color }; // Store color for hover effects
     return mesh;
 };
 
 export default function GlobeWrapper() {
-    const { showReverseSide, locations, fetchLocations, currentYear, setSelectedLocation } = useLayerStore();
-    const { t, language } = useLanguageStore(); // Get translation function AND language
+    const {
+        showReverseSide, locations, fetchLocations, currentYear, setSelectedLocation,
+        viewLevel, setViewLevel, focusedRegion, setFocusedRegion,
+        continentRegions, countryRegions
+    } = useLayerStore();
+    const { t, language } = useLanguageStore();
 
     const globeEl = useRef<GlobeMethods | undefined>(undefined);
     const [mounted, setMounted] = useState(false);
@@ -46,53 +67,72 @@ export default function GlobeWrapper() {
     const [hoveredContinent, setHoveredContinent] = useState<string | null>(null);
     const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
 
-    // === DYNAMIC LABELS ===
-    const geoLabels = useMemo(() => [
-        // Continents
-        { text: t('geo.asia'), lat: 45, lng: 90, size: '20px', color: 'rgba(255,255,255,0.7)', weight: 'bold' },
-        { text: t('geo.europe'), lat: 50, lng: 15, size: '20px', color: 'rgba(255,255,255,0.7)', weight: 'bold' },
-        { text: t('geo.africa'), lat: 10, lng: 20, size: '20px', color: 'rgba(255,255,255,0.7)', weight: 'bold' },
-        { text: t('geo.na'), lat: 45, lng: -100, size: '20px', color: 'rgba(255,255,255,0.7)', weight: 'bold' },
-        { text: t('geo.sa'), lat: -15, lng: -60, size: '20px', color: 'rgba(255,255,255,0.7)', weight: 'bold' },
-        { text: t('geo.oceania'), lat: -25, lng: 135, size: '20px', color: 'rgba(255,255,255,0.7)', weight: 'bold' },
-        { text: t('geo.antarctica'), lat: -80, lng: 0, size: '20px', color: 'rgba(255,255,255,0.7)', weight: 'bold' },
+    // === DATA DEPENDING ON VIEW LEVEL ===
+    const displayData = useMemo(() => {
+        if (viewLevel === 'GLOBAL') {
+            // SHOW ALL LOCATIONS (Filtered by Year)
+            // User prefers seeing dots over strict drill-down at global level for now.
+            return locations
+                .filter(loc => {
+                    const start = loc.year_start ?? -9999999999;
+                    const end = loc.year_end ?? 9999999999; // If no end date, location is "ongoing"
+                    return currentYear >= start && currentYear <= end;
+                })
+                .map(loc => ({
+                    ...loc,
+                    label: loc.name,
+                    color: TYPE_COLORS[loc.type] || TYPE_COLORS.default,
+                    size: 0.6,
+                    alt: 0.02
+                }));
+        }
+        if (viewLevel === 'CONTINENT') {
+            // Show Countries in this continent
+            if (focusedRegion) {
+                return countryRegions
+                    .filter(c => c.id.endsWith(focusedRegion.id)) // id is "Country-Continent"
+                    .map(c => ({
+                        ...c,
+                        label: c.name,
+                        color: '#00f0ff',
+                        size: 1.5, // Increased from 1.0
+                        alt: 0.05
+                    }));
+            }
+            return [];
+        }
+        if (viewLevel === 'COUNTRY') {
+            // Show Actual Locations for this country
+            if (focusedRegion && focusedRegion.children) {
+                return (focusedRegion.children as any[])
+                    .filter(loc => {
+                        const start = loc.year_start ?? -9999999999;
+                        const end = loc.year_end ?? 9999999999; // If no end date, location is "ongoing"
+                        return currentYear >= start && currentYear <= end;
+                    })
+                    .map(loc => ({
+                        ...loc,
+                        lat: loc.coordinates?.lat ?? loc.lat,
+                        lng: loc.coordinates?.lng ?? loc.lng,
+                        label: loc.name,
+                        color: TYPE_COLORS[loc.type] || TYPE_COLORS.default,
+                        size: loc.type === 'Lostbelt' ? 1.2 : 0.8, // Increased size
+                        alt: 0.05
+                    }));
+            }
+            return [];
+        }
+        return [];
+    }, [viewLevel, focusedRegion, continentRegions, countryRegions, locations]);
 
-        // Countries
-        { text: t('country.russia'), lat: 60, lng: 90, size: '12px', color: 'rgba(0,240,255,0.8)', weight: 'normal' },
-        { text: t('country.usa'), lat: 38, lng: -97, size: '12px', color: 'rgba(0,240,255,0.8)', weight: 'normal' },
-        { text: t('country.china'), lat: 35, lng: 105, size: '12px', color: 'rgba(0,240,255,0.8)', weight: 'normal' },
-        { text: t('country.japan'), lat: 36, lng: 138, size: '12px', color: 'rgba(0,240,255,0.8)', weight: 'normal' },
-        { text: t('country.taiwan'), lat: 23.5, lng: 121, size: '10px', color: 'rgba(0,240,255,0.8)', weight: 'normal' },
-        { text: t('country.uk'), lat: 54, lng: -2, size: '12px', color: 'rgba(0,240,255,0.8)', weight: 'normal' },
-    ], [t]);
 
     useEffect(() => {
         setMounted(true);
-        fetchLocations();
 
         fetch('https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson')
             .then(r => r.json())
             .then(setCountries);
     }, []);
-
-    const filteredLocations = useMemo(() => {
-        // Use SAMPLE_LOCATIONS if store locations are empty
-        const sourceData = locations.length > 0 ? locations : SAMPLE_LOCATIONS;
-
-        const transformedData = sourceData.map((loc: any) => ({
-            ...loc,
-            lat: loc.coordinates?.lat ?? loc.lat, // Handle both structures if needed
-            lng: loc.coordinates?.lng ?? loc.lng,
-            alt: 0.03,
-            label: loc.name,
-        }));
-
-        return transformedData.filter((loc: any) => {
-            const start = loc.year_start ?? -9999999999;
-            const end = loc.year_end ?? 9999;
-            return currentYear >= start && currentYear <= end;
-        });
-    }, [locations, currentYear]);
 
     useEffect(() => {
         if (mounted && globeEl.current) {
@@ -101,10 +141,34 @@ export default function GlobeWrapper() {
             const dir = new THREE.DirectionalLight(0xffffff, 2.0);
             dir.position.set(20, 20, 20);
             scene.add(ambient, dir);
-
-            globeEl.current.pointOfView({ lat: 20, lng: 0, altitude: 2.5 });
+            globeEl.current.pointOfView({ lat: 35.6, lng: 136.0, altitude: 2.5 });
         }
     }, [mounted]);
+
+    const handleObjectClick = (d: any) => {
+        if (!globeEl.current) return;
+
+        if (d.type === 'CONTINENT') {
+            // Zoom in to Continent
+            setFocusedRegion(d);
+            globeEl.current.pointOfView({ lat: d.lat, lng: d.lng, altitude: 1.5 }, 1000);
+        } else if (d.type === 'COUNTRY') {
+            // Zoom in to Country
+            setFocusedRegion(d);
+            globeEl.current.pointOfView({ lat: d.lat, lng: d.lng, altitude: 0.6 }, 1000);
+        } else {
+            // It's a location
+            setSelectedLocation(d);
+            globeEl.current.pointOfView({ lat: d.lat, lng: d.lng, altitude: 0.3 }, 800);
+        }
+    };
+
+    // Reset view on "Back" (User needs a back button UI, but clicking empty space works for now?)
+    const handleGlobeClick = () => {
+        // Optional: Reset level if clicking empty space?
+        // setViewLevel('GLOBAL');
+        // setFocusedRegion(null);
+    };
 
     if (!mounted) return <div className="w-full h-full bg-black flex items-center justify-center text-cyan-500">Initializing Core...</div>;
 
@@ -112,22 +176,51 @@ export default function GlobeWrapper() {
     const oceanImage = `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><rect width="1" height="1" fill="${oceanColor}"/></svg>`)}`;
 
     return (
-        <div className="w-full h-screen bg-black">
+        <div className="w-full h-full">
+            {/* Back Button for Drill Down - Only visible if deep */}
+            {viewLevel !== 'GLOBAL' && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        // Go up one level
+                        if (viewLevel === 'COUNTRY') {
+                            setFocusedRegion(continentRegions.find(c => focusedRegion!.id.includes(c.id)) as any);
+                            // Re-finding parent is tricky with current simple state, let's just reset to GLOBAL for MVP reliability or Continent logic
+                            // Actually setFocusedRegion logic handles level setting based on type.
+                            // If we want to go Country -> Continent, we need the Continent Region object.
+                            // Simplified: Just Global reset for now, or find parent.
+
+                            // Let's safe-reset to Global for now to avoid bugs, user can re-drill
+                            setFocusedRegion(null);
+                            if (globeEl.current) globeEl.current.pointOfView({ lat: 20, lng: 0, altitude: 2.5 }, 1000);
+                        } else {
+                            setFocusedRegion(null);
+                            if (globeEl.current) globeEl.current.pointOfView({ lat: 20, lng: 0, altitude: 2.5 }, 1000);
+                        }
+                    }}
+                    className="absolute top-24 left-4 z-50 px-4 py-2 bg-black/60 border border-cyan-500/50 text-cyan-400 rounded hover:bg-cyan-900/50 backdrop-blur-md transition-all"
+                >
+                    ← RETURN TO ORBIT
+                </button>
+            )}
+
             <Globe
                 ref={globeEl}
-                // CRITICAL FIX: Include language in key to force re-render when language changes
-                key={`${showReverseSide ? 'reverse' : 'surface'}-${language}`}
+                key={`${showReverseSide ? 'reverse' : 'surface'}-${language}-${viewLevel}`} // Re-render on level change
 
                 atmosphereAltitude={0.25}
                 globeImageUrl={oceanImage}
                 backgroundColor="#000000"
                 atmosphereColor={showReverseSide ? "#ffd700" : "#00f0ff"}
 
+                // === AUTO ROTATION ===
+                autoRotate={true}
+                autoRotateSpeed={0.5}
+
                 // === VECTOR CONTINENTS ===
                 polygonsData={countries.features}
                 polygonStrokeColor={() => showReverseSide ? '#aa8800' : '#446666'}
                 polygonSideColor={() => 'rgba(0,0,0,0)'}
-
                 polygonCapColor={(d: any) => {
                     const continent = d.properties.CONTINENT;
                     const isContinentHovered = continent === hoveredContinent;
@@ -138,70 +231,42 @@ export default function GlobeWrapper() {
                     if (isContinentHovered) return baseColor.replace('0.2', '0.4');
                     return baseColor;
                 }}
-
-                polygonAltitude={(d: any) => {
-                    if (d.properties.NAME === hoveredCountry) return 0.015;
-                    if (d.properties.CONTINENT === hoveredContinent) return 0.01;
-                    return 0.001;
-                }}
+                polygonAltitude={0.01}
                 polygonsTransitionDuration={300}
 
-                // EVENTS
                 onPolygonHover={(d: any) => {
                     setHoveredContinent(d ? d.properties.CONTINENT : null);
                     setHoveredCountry(d ? d.properties.NAME : null);
                 }}
 
-                onPolygonClick={(d: any, event: any, coords: { lat: number, lng: number }) => {
-                    if (globeEl.current) {
-                        globeEl.current.pointOfView({
-                            lat: coords.lat,
-                            lng: coords.lng,
-                            altitude: 1.0
-                        }, 1000);
-                    }
-                }}
+                // === INTERACTION ===
+                onGlobeClick={handleGlobeClick}
 
-                // === HTML LABELS ===
-                htmlElementsData={geoLabels}
-                htmlLat="lat"
-                htmlLng="lng"
-                htmlAltitude={0.05}
-                htmlElement={(d: any) => {
-                    const el = document.createElement('div');
-                    el.innerText = d.text;
-                    el.style.color = d.color;
-                    el.style.fontSize = d.size;
-                    el.style.fontWeight = d.weight;
-                    el.style.fontFamily = 'monospace';
-                    el.style.textShadow = '0 0 5px #000';
-                    el.style.pointerEvents = 'none';
-                    el.style.whiteSpace = 'pre';
-                    el.style.textAlign = 'center';
-                    return el;
-                }}
+                // === HTML LABELS (Only show at Country/Global level) ===
+                htmlElementsData={viewLevel === 'COUNTRY' ? [] : (viewLevel === 'CONTINENT' ? [] : [])} // Hide default labels for now to avoid clutter
 
-                // === MARKERS: SPHERES ===
-                customLayerData={filteredLocations}
+                // === MARKERS: SPHERES (Dynamic Level Data) ===
+                customLayerData={displayData}
                 customLayerLabel="label"
-                customThreeObject={getSphereMarker}
-                customThreeObjectUpdate={(obj, d: any) => {
-                    if (obj && globeEl.current) {
-                        Object.assign(obj.position, globeEl.current.getCoords(d.lat, d.lng, d.alt));
-                    }
+                customThreeObject={(d: any) => {
+                    const color = d.color || '#ffffff';
+                    const size = d.size || 0.5;
+                    const geometry = new THREE.SphereGeometry(size, 32, 32);
+                    const material = new THREE.MeshPhongMaterial({
+                        color: color,
+                        emissive: color,
+                        emissiveIntensity: 0.8,
+                        shininess: 100,
+                    });
+                    return new THREE.Mesh(geometry, material);
                 }}
-                onCustomLayerClick={(d: any) => {
-                    if (d) {
-                        setSelectedLocation(d);
-                    }
-                }}
+                onCustomLayerClick={handleObjectClick}
 
-                ringsData={filteredLocations}
+                ringsData={displayData}
                 ringColor="color"
-                ringMaxRadius={3.5}
+                ringMaxRadius={viewLevel === 'GLOBAL' ? 10 : 3}
                 ringPropagationSpeed={2.5}
                 ringRepeatPeriod={1200}
-                ringAltitude={0.02}
             />
 
             {showReverseSide && (
