@@ -15,7 +15,10 @@
       "Bash(npm run notion:verify:*)",
       "Bash(npm run notion:sync:*)",
       "Bash(git push:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(dir:*)"
     ]
   }
 }
